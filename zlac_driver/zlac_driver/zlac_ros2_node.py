@@ -17,8 +17,8 @@ class ZLACDriverNode(Node):
         
         # --- Parameters ---
         self.declare_parameter('port', '/dev/ttyACM0')
-        self.declare_parameter('wheel_base', 0.26) # The distance between your wheels in meters
-        self.declare_parameter('wheel_radius', 0.105) 
+        self.declare_parameter('wheel_base', 0.27) # used to be 0.26 The distance between your wheels in meters
+        self.declare_parameter('wheel_radius', 0.0875) # used to be 0.105
         
         port = self.get_parameter('port').value
         self.wheel_base = self.get_parameter('wheel_base').value
