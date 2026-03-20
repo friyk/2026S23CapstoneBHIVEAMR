@@ -21,7 +21,7 @@ The AMR is built on a ROS 2 distributed node architecture running on a Jetson Or
 
 - **Framework:** ROS 2
 - **Language:** Python
-- **Hardware:** NVIDIA Jetson Orin Nano
+- **Hardware:** NVIDIA Jetson Orin Nano, Intel Depth Sense, RPLiDAR, Ultrasonic Sensors, IMU
 - **Build:** CMake / colcon
 
 ## Related
