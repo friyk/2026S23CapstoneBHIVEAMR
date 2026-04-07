@@ -103,9 +103,9 @@ class Controller:
 		## Odometry ##
 		##############
 		## 8 inches wheel
-		self.travel_in_one_rev = 0.655
+		self.travel_in_one_rev = 0.5413
 		self.cpr = 16385
-		self.R_Wheel = 0.105 #meter
+		self.R_Wheel = 0.0865 #meter
 
 	## Some time if read immediatly after write, it would show ModbusIOException when get data from registers
 	def modbus_fail_read_handler(self, ADDR, WORD):
@@ -363,8 +363,10 @@ class Controller:
 		r_pul_hi = registers[2]
 		r_pul_lo = registers[3]
 
-		l_pulse = np.int32(((l_pul_hi & 0xFFFF) << 16) | (l_pul_lo & 0xFFFF))
-		r_pulse = np.int32(((r_pul_hi & 0xFFFF) << 16) | (r_pul_lo & 0xFFFF))
+		l_combined = int(((l_pul_hi & 0xFFFF) << 16) | (l_pul_lo & 0xFFFF))
+		l_pulse = np.int32(l_combined if l_combined < 2147483648 else l_combined - 4294967296)
+		r_combined = int(((r_pul_hi & 0xFFFF) << 16) | (r_pul_lo & 0xFFFF))
+		r_pulse = np.int32(r_combined if r_combined < 2147483648 else r_combined - 4294967296)
 		l_travelled = (float(l_pulse)/self.cpr)*self.travel_in_one_rev  # unit in meter
 		r_travelled = (float(r_pulse)/self.cpr)*self.travel_in_one_rev  # unit in meter
 
@@ -388,7 +390,8 @@ class Controller:
 		registers = self.modbus_fail_read_handler(self.L_FB_CURRENT, 2)
 		
 		# Convert the signed 16-bit integer and apply scaling
-		fb_L_amp = np.int16(registers[0]) / 10.0
-		fb_R_amp = np.int16(registers[1]) / 10.0
-
+		l_raw = int(registers[0]) #fb_L_amp = np.int16(registers[0]) / 10.0
+		r_raw = int(registers[1]) #fb_R_amp = np.int16(registers[1]) / 10.0
+		fb_L_amp = (np.int16(l_raw if l_raw < 32768 else l_raw - 65536)) / 10.0
+		fb_R_amp = (np.int16(r_raw if r_raw < 32768 else r_raw - 65536)) / 10.0
 		return fb_L_amp, fb_R_amp

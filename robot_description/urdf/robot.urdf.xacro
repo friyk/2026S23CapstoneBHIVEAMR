@@ -4,23 +4,25 @@
   <!-- ── DIMENSIONS ── -->
   <xacro:property name="base_length"  value="0.565"/>
   <xacro:property name="base_width"   value="0.400"/>
-  <xacro:property name="base_height"  value="0.540"/>
+  <xacro:property name="base_height"  value="0.384"/>
   <xacro:property name="wheel_radius" value="0.0875"/>
   <xacro:property name="wheel_width"  value="0.040"/>
-  <xacro:property name="wheel_base"   value="0.270"/>
+  <xacro:property name="wheel_base"   value="0.275"/>
 
   <!-- ── BASE FOOTPRINT ── -->
   <link name="base_footprint"/>
 
-  <!-- ── BASE LINK ── -->
+  <!-- ── BASE LINK (origin at wheel axle, ground level) ── -->
   <link name="base_link">
     <visual>
+      <origin xyz="-0.1325 0 0.192" rpy="0 0 0"/>
       <geometry>
         <box size="${base_length} ${base_width} ${base_height}"/>
       </geometry>
       <material name="grey"><color rgba="0.5 0.5 0.5 1"/></material>
     </visual>
     <collision>
+      <origin xyz="-0.1325 0 0.192" rpy="0 0 0"/>
       <geometry>
         <box size="${base_length} ${base_width} ${base_height}"/>
       </geometry>
@@ -31,6 +33,7 @@
     </inertial>
   </link>
 
+  <!-- base_footprint is directly below wheel axle on ground -->
   <joint name="base_footprint_joint" type="fixed">
     <parent link="base_footprint"/>
     <child  link="base_link"/>
@@ -38,24 +41,24 @@
   </joint>
 
   <!-- ── LIDAR ── -->
-  <!-- Centre of robot is 0.2825m from front. Lidar is 27cm from front = 0.2825-0.27=0.0125m forward of centre -->
+  <!-- 12.5cm forward of wheel axle, 43.90cm above base_link -->
   <link name="laser_frame"/>
   <joint name="laser_joint" type="fixed">
     <parent link="base_link"/>
     <child  link="laser_frame"/>
-    <origin xyz="0.0125 0.0 0.4385" rpy="0 0 0"/>
+    <origin xyz="0.125 0.0 0.4390" rpy="0 0 0"/>
   </joint>
 
   <!-- ── REALSENSE D435 ── -->
-  <!-- At front edge = 0.2825m forward of centre, 0.1525m above base_link -->
+  <!-- 41.5cm forward of wheel axle, 30.25cm above base_link -->
   <link name="camera_link"/>
   <joint name="camera_joint" type="fixed">
     <parent link="base_link"/>
     <child  link="camera_link"/>
-    <origin xyz="0.2825 0.0 0.1525" rpy="0 0 0"/>
+    <origin xyz="0.415 0.0 0.3025" rpy="0 0 0"/>
   </joint>
 
-  <!-- camera optical frame (ROS convention: z forward, x right, y down) -->
+  <!-- camera optical frame -->
   <link name="camera_color_optical_frame"/>
   <joint name="camera_optical_joint" type="fixed">
     <parent link="camera_link"/>
@@ -64,27 +67,30 @@
   </joint>
 
   <!-- ── IMU ── -->
+  <!-- 13.25cm forward of wheel axle, 27.75cm above base_link -->
   <link name="imu_link"/>
   <joint name="imu_joint" type="fixed">
     <parent link="base_link"/>
     <child  link="imu_link"/>
-    <origin xyz="0.0 0.0 0.2775" rpy="0 0 0"/>
+    <origin xyz="0.1325 0.0 0.2775" rpy="0 0 0"/>
   </joint>
 
   <!-- ── ULTRASONIC FRONT (D26) ── -->
+  <!-- at front of robot = 41.5cm forward of axle -->
   <link name="ultrasonic_front_link"/>
   <joint name="ultrasonic_front_joint" type="fixed">
     <parent link="base_link"/>
     <child  link="ultrasonic_front_link"/>
-    <origin xyz="0.2825 0.0 0.10" rpy="0 0 0"/>
+    <origin xyz="0.415 0.0 0.10" rpy="0 0 0"/>
   </joint>
 
   <!-- ── ULTRASONIC BACK (D18) ── -->
+  <!-- at back of robot = 56.5 - 41.5 = 15cm behind axle -->
   <link name="ultrasonic_back_link"/>
   <joint name="ultrasonic_back_joint" type="fixed">
     <parent link="base_link"/>
     <child  link="ultrasonic_back_link"/>
-    <origin xyz="-0.2825 0.0 0.10" rpy="0 0 3.14159"/>
+    <origin xyz="-0.150 0.0 0.10" rpy="0 0 3.14159"/>
   </joint>
 
   <!-- ── ULTRASONIC LEFT (D24 - future) ── -->

@@ -1,6 +1,6 @@
 import os
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, TimerAction
+from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
@@ -21,7 +21,6 @@ def generate_launch_description():
         parameters=[{
             'serial_port': '/dev/rplidar',
             'serial_baudrate': 115200,
-            'scan_frequency': 5.0,
             'frame_id': 'laser_frame',
             'inverted': False,
             'angle_compensate': True,
@@ -38,14 +37,10 @@ def generate_launch_description():
         parameters=[{
             'enable_color': True,
             'enable_depth': True,
-            'enable_accel': True,
-            'enable_gyro': True,
-            'unite_imu_method': 2,
+            'enable_accel': False,
+            'enable_gyro': False,
             'align_depth.enable': True,
             'pointcloud__neon_.enable': True,
-            'pointcloud__neon_.ordered.pc': False,
-            'enable_sync': True,
-            'depth_module.enable_auto_exposure': True,
             'depth_module.profile': '848x480x30',
             'rgb_camera.profile': '640x480x30',
             'base_frame_id': 'camera_link',
@@ -82,10 +77,6 @@ def generate_launch_description():
             'publish_tf': False,
             'world_frame': 'enu',
         }],
-        remappings=[
-            ('/imu/data_raw', '/imu/data_raw'),
-            ('/imu/data',     '/imu/data'),
-        ],
         output='screen'
     )
 
@@ -98,19 +89,6 @@ def generate_launch_description():
         output='screen'
     )
 
-    slam_node = TimerAction(period=5.0, actions=[
-        Node(
-            package='slam_toolbox',
-            executable='async_slam_toolbox_node',
-            name='slam_toolbox',
-            parameters=[
-                os.path.join(bringup, 'config', 'slam_toolbox_params.yaml'),
-                {'use_sim_time': False}
-            ],
-            output='screen',
-        )
-    ])
-
     camera_tf = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
@@ -122,6 +100,56 @@ def generate_launch_description():
         output='screen'
     )
 
+    os.makedirs('/home/s23/rtabmap', exist_ok=True)
+
+    rtabmap_node = Node(
+        package='rtabmap_slam',
+        executable='rtabmap',
+        name='rtabmap',
+        output='screen',
+        parameters=[{
+            # Input streams
+            'subscribe_depth': True,
+            'subscribe_rgb': True,
+            'subscribe_scan': True,
+            'subscribe_odom_info': False,
+            # Frames
+            'odom_frame_id': 'odom',
+            'map_frame_id': 'map',
+            'base_frame_id': 'base_link',
+            # Sync
+            'approx_sync': True,
+            'queue_size': 10,
+            'use_sim_time': False,
+            # Database
+            'database_path': '/home/s23/rtabmap/rtabmap.db',
+            # Trust odometry — do NOT re-estimate motion from camera/ICP
+            'Reg/Strategy': '0',            # trust odometry completely
+            'Reg/Force3DoF': 'true',        # 2D robot
+            'Odom/Strategy': '0',
+            # Loop closure
+            'RGBD/NeighborLinkRefining': 'false',  # don't correct odom
+            'RGBD/ProximityBySpace': 'true',
+            'RGBD/AngularUpdate': '0.05',
+            'RGBD/LinearUpdate': '0.05',
+            'RGBD/OptimizeFromGraphEnd': 'false',
+            'RGBD/OptimizeMaxError': '0.0',  # accept all loop closures
+            # 2D grid from LiDAR only
+            'Grid/FromDepth': 'false',
+            'Grid/CellSize': '0.05',
+            'Grid/RangeMax': '12.0',
+            'Mem/NotLinkedNodesKept': 'false',
+        }],
+        remappings=[
+            ('rgb/image',       '/camera/camera/color/image_raw'),
+            ('depth/image',     '/camera/camera/aligned_depth_to_color/image_raw'),
+            ('rgb/camera_info', '/camera/camera/color/camera_info'),
+            ('scan',            '/scan'),
+            ('odom',            '/odometry/filtered'),
+        ],
+        arguments=['--delete_db_on_start'],
+    )
+
     return LaunchDescription([
         description_launch,
         rplidar_node,
@@ -130,6 +158,6 @@ def generate_launch_description():
         imu_node,
         imu_filter,
         ekf_node,
-        slam_node,
         camera_tf,
+        rtabmap_node,
     ])

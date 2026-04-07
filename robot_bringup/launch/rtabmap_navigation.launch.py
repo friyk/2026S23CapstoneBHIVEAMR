@@ -1,6 +1,6 @@
 import os
 from launch import LaunchDescription
-from launch.actions import IncludeLaunchDescription, TimerAction
+from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
@@ -8,6 +8,7 @@ from ament_index_python.packages import get_package_share_directory
 def generate_launch_description():
     bringup = get_package_share_directory('robot_bringup')
     desc    = get_package_share_directory('robot_description')
+    nav2    = get_package_share_directory('nav2_bringup')
     ekf_cfg = os.path.join(bringup, 'config', 'ekf.yaml')
 
     description_launch = IncludeLaunchDescription(
@@ -21,7 +22,6 @@ def generate_launch_description():
         parameters=[{
             'serial_port': '/dev/rplidar',
             'serial_baudrate': 115200,
-            'scan_frequency': 5.0,
             'frame_id': 'laser_frame',
             'inverted': False,
             'angle_compensate': True,
@@ -38,14 +38,10 @@ def generate_launch_description():
         parameters=[{
             'enable_color': True,
             'enable_depth': True,
-            'enable_accel': True,
-            'enable_gyro': True,
-            'unite_imu_method': 2,
+            'enable_accel': False,
+            'enable_gyro': False,
             'align_depth.enable': True,
             'pointcloud__neon_.enable': True,
-            'pointcloud__neon_.ordered.pc': False,
-            'enable_sync': True,
-            'depth_module.enable_auto_exposure': True,
             'depth_module.profile': '848x480x30',
             'rgb_camera.profile': '640x480x30',
             'base_frame_id': 'camera_link',
@@ -82,10 +78,6 @@ def generate_launch_description():
             'publish_tf': False,
             'world_frame': 'enu',
         }],
-        remappings=[
-            ('/imu/data_raw', '/imu/data_raw'),
-            ('/imu/data',     '/imu/data'),
-        ],
         output='screen'
     )
 
@@ -98,19 +90,6 @@ def generate_launch_description():
         output='screen'
     )
 
-    slam_node = TimerAction(period=5.0, actions=[
-        Node(
-            package='slam_toolbox',
-            executable='async_slam_toolbox_node',
-            name='slam_toolbox',
-            parameters=[
-                os.path.join(bringup, 'config', 'slam_toolbox_params.yaml'),
-                {'use_sim_time': False}
-            ],
-            output='screen',
-        )
-    ])
-
     camera_tf = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
@@ -122,6 +101,53 @@ def generate_launch_description():
         output='screen'
     )
 
+    # RTAB-Map in localization mode — loads existing database
+    rtabmap_node = Node(
+        package='rtabmap_slam',
+        executable='rtabmap',
+        name='rtabmap',
+        output='screen',
+        parameters=[{
+            'subscribe_depth': True,
+            'subscribe_rgb': True,
+            'subscribe_scan': True,
+            'use_action_for_goal': False,
+            'odom_frame_id': 'odom',
+            'map_frame_id': 'map',
+            'base_frame_id': 'base_link',
+            'database_path': '/home/s23/rtabmap/rtabmap.db',
+            'approx_sync': True,
+            'queue_size': 10,
+            'use_sim_time': False,
+            'Mem/IncrementalMemory': 'false',   # localization only
+            'Mem/InitWMWithAllNodes': 'true',    # load full map
+            'RGBD/NeighborLinkRefining': 'false',
+            'RGBD/AngularUpdate': '0.05',
+            'RGBD/LinearUpdate': '0.05',
+            'Grid/FromDepth': 'false',
+            'Reg/Strategy': '1',
+            'Reg/Force3DoF': 'true',
+            'Grid/CellSize': '0.05',
+            'Grid/RangeMax': '12.0',
+        }],
+        remappings=[
+            ('rgb/image',       '/camera/camera/color/image_raw'),
+            ('depth/image',     '/camera/camera/aligned_depth_to_color/image_raw'),
+            ('rgb/camera_info', '/camera/camera/color/camera_info'),
+            ('scan',            '/scan'),
+            ('odom',            '/odometry/filtered'),
+        ],
+    )
+
+    nav2_launch = IncludeLaunchDescription(
+        PythonLaunchDescriptionSource(
+            os.path.join(nav2, 'launch', 'navigation_launch.py')),
+        launch_arguments={
+            'params_file': os.path.join(bringup, 'config', 'nav2_params.yaml'),
+            'use_sim_time': 'False',
+        }.items()
+    )
+
     return LaunchDescription([
         description_launch,
         rplidar_node,
@@ -130,6 +156,7 @@ def generate_launch_description():
         imu_node,
         imu_filter,
         ekf_node,
-        slam_node,
         camera_tf,
+        rtabmap_node,
+        nav2_launch,
     ])
