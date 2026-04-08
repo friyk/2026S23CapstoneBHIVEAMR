@@ -2,7 +2,7 @@
 
 B.HIVE AMR is a functional autonomous mobile robot prototype built from the ground up. The robot autonomously navigates indoor environments, localises against a pre-built map, and communicates with a companion mobile app over Bluetooth Low Energy — designed around a real-world use case of transporting and weighing luggage.
 
-This repository contains the full ROS 2 software stack running on the robot. The companion embedded firmware for the loading and weighing subsystem lives in a separate repository.
+This repository contains the full ROS 2 software stack running on the robot.
 
 ---
 
@@ -11,7 +11,7 @@ This repository contains the full ROS 2 software stack running on the robot. The
 | Repository | Description |
 |---|---|
 | **B.HIVE AMR** *(this repo)* | ROS 2 software stack for the autonomous mobile robot — differential-drive control, AMCL localisation, Nav2 navigation, and BLE communication on a Jetson Orin Nano. |
-| **[B.HIVE Load & Weigh](https://github.com/friyk/2026S23CapstoneBHIVELOADANDWEIGH)** | ESP32 firmware for the weighing platform and stepper-driven luggage pusher. |
+| **[B.HIVE Load & Weigh](https://github.com/friyk/2026S23CapstoneBHIVELOADANDWEIGH)** | ESP32 firmware for a stationary model that simulates the robot's onboard weighing platform and stepper-driven luggage pusher. In the final design, this subsystem would be integrated directly into the AMR chassis. |
 
 ---
 
