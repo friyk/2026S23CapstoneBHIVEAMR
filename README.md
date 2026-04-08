@@ -1,8 +1,17 @@
 # B.HIVE AMR — Autonomous Mobile Robot
 
-B.HIVE is a functional autonomous mobile robot prototype built from the ground up as a capstone project. The robot autonomously navigates indoor environments, localises against a pre-built map, and communicates with a companion mobile app over Bluetooth Low Energy — designed around a real-world use case of transporting and weighing luggage.
+B.HIVE AMR is a functional autonomous mobile robot prototype built from the ground up. The robot autonomously navigates indoor environments, localises against a pre-built map, and communicates with a companion mobile app over Bluetooth Low Energy — designed around a real-world use case of transporting and weighing luggage.
 
-This repository contains the full ROS 2 software stack running on the robot. The companion embedded firmware for the loading and weighing subsystem lives in a separate repository: **[2026S23CapstoneBHIVELOADANDWEIGH](https://github.com/friyk/2026S23CapstoneBHIVELOADANDWEIGH)**.
+This repository contains the full ROS 2 software stack running on the robot. The companion embedded firmware for the loading and weighing subsystem lives in a separate repository.
+
+---
+
+## Related Repositories
+
+| Repository | Description |
+|---|---|
+| **B.HIVE AMR** *(this repo)* | ROS 2 software stack for the autonomous mobile robot — differential-drive control, AMCL localisation, Nav2 navigation, and BLE communication on a Jetson Orin Nano. |
+| **[B.HIVE Load & Weigh](https://github.com/friyk/2026S23CapstoneBHIVELOADANDWEIGH)** | ESP32 firmware for the weighing platform and stepper-driven luggage pusher. |
 
 ---
 
@@ -195,7 +204,7 @@ source install/setup.bash
 
 ### udev Rules
 
-Create `/etc/udev/rules.d/99-robot.rules` so that devices appear at the paths the launch files expect:
+Create `/etc/udev/rules.d/99-robot.rules` so that devices are available at the paths the launch files expect:
 
 ```udev
 # ZLAC8015D (USB-RS485 adapter) — replace idVendor/idProduct with your adapter's values
@@ -219,13 +228,13 @@ Source the workspace before running any command: `source ~/ros2_ws/install/setup
 
 ### Build a Map
 
-Bring up the full sensor stack with SLAM Toolbox for initial map creation. Drive the robot around (e.g. with `teleop_twist_keyboard`) to build the occupancy grid:
+Bring up the full sensor stack with SLAM Toolbox for mapping. Drive the robot (e.g. with `teleop_twist_keyboard`) to build the occupancy grid:
 
 ```bash
 ros2 launch robot_bringup robot.launch.py
 ```
 
-Save the map when complete:
+When the map is complete:
 
 ```bash
 ros2 run nav2_map_server map_saver_cli -f ~/ros2_ws/maps/my_map
@@ -249,7 +258,7 @@ ros2 launch robot_bringup localisation.launch.py
 
 ### RTAB-Map Alternatives
 
-Available for environments where visual loop closure or 3D map data is beneficial:
+For environments where visual loop closure or 3D map features are useful:
 
 ```bash
 # Mapping — LiDAR only
@@ -325,12 +334,6 @@ map
 
 ---
 
-## Related Repository
-
-**[2026S23CapstoneBHIVELOADANDWEIGH](https://github.com/friyk/2026S23CapstoneBHIVELOADANDWEIGH)** — PlatformIO (C/C++) firmware for the B.HIVE loading and weighing subsystem. Handles load cell sensing and luggage weight measurement. Together with this repository, these form the complete B.HIVE capstone system.
-
----
-
 ## Troubleshooting
 
 | Symptom | Check |
@@ -338,9 +341,9 @@ map
 | Motor driver not connecting | Verify `ls /dev/zlac` exists. Confirm ZLAC8015D is powered and baud rate is 115200. Run `sudo dmesg \| tail` after plugging in. |
 | IMU not found | Run `i2cdetect -y 7` — device should appear at `0x6A`. If bus 7 doesn't exist, adjust the `i2c_bus` parameter. |
 | LiDAR not spinning | Verify `ls /dev/rplidar`. Check udev rules and USB connection. |
-| AMCL not converging | Set an accurate initial pose in RViz2 ("2D Pose Estimate"). Verify the correct map `.yaml` and `.pgm` are being loaded. |
-| BLE not advertising | Ensure `bluetoothd` is running and `hci0` is up (`sudo hciconfig hci0 up`). Node requires D-Bus permissions. |
-| EKF drift | Keep the robot stationary during the first 2 s after launch (gyro bias calibration). Verify `wheel_base` and `wheel_radius`. |
+| AMCL not converging | Set an accurate initial pose in RViz2 ("2D Pose Estimate"). Verify the correct map `.yaml` and `.pgm` files are being loaded. |
+| BLE not advertising | Ensure `bluetoothd` is running and `hci0` is up (`sudo hciconfig hci0 up`). The node requires D-Bus permissions. |
+| EKF drift | Keep the robot stationary during the first 2 seconds after launch (gyro bias calibration). Verify `wheel_base` and `wheel_radius` values. |
 
 ---
 
