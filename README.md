@@ -1,7 +1,5 @@
 # B.HIVE AMR — Autonomous Mobile Robot
 
-**Capstone Project · 2026 Semester 2, Trimester 3**
-
 B.HIVE is a functional autonomous mobile robot prototype built from the ground up as a capstone project. The robot autonomously navigates indoor environments, localises against a pre-built map, and communicates with a companion mobile app over Bluetooth Low Energy — designed around a real-world use case of transporting and weighing luggage.
 
 This repository contains the full ROS 2 software stack running on the robot. The companion embedded firmware for the loading and weighing subsystem lives in a separate repository: **[2026S23CapstoneBHIVELOADANDWEIGH](https://github.com/friyk/2026S23CapstoneBHIVELOADANDWEIGH)**.
