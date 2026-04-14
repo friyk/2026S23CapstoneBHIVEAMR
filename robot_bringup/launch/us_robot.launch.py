@@ -21,6 +21,7 @@ def generate_launch_description():
         parameters=[{
             'serial_port': '/dev/rplidar',
             'serial_baudrate': 115200,
+            'scan_frequency': 5.0,
             'frame_id': 'laser_frame',
             'inverted': False,
             'angle_compensate': True,
@@ -41,7 +42,10 @@ def generate_launch_description():
             'enable_gyro': True,
             'unite_imu_method': 2,
             'align_depth.enable': True,
-            'pointcloud.enable': False,
+            'pointcloud__neon_.enable': True,
+            'pointcloud__neon_.ordered.pc': False,
+            'enable_sync': True,
+            'depth_module.enable_auto_exposure': True,
             'depth_module.profile': '848x480x30',
             'rgb_camera.profile': '640x480x30',
             'base_frame_id': 'camera_link',
@@ -59,6 +63,7 @@ def generate_launch_description():
             'wheel_base': 0.275,
             'wheel_radius': 0.0865,
         }],
+        remappings=[('cmd_vel', 'cmd_vel_safe')],
         output='screen'
     )
 
@@ -94,6 +99,64 @@ def generate_launch_description():
         output='screen'
     )
 
+    ultrasonic_node = Node(
+        package='ultrasonic_bridge',
+        executable='ultrasonic_node',
+        name='ultrasonic_bridge',
+        parameters=[{'port': '/dev/esp32', 'baud': 115200}],
+        output='screen'
+    )
+
+    safety_stop_node = Node(
+        package='ultrasonic_bridge',
+        executable='safety_stop_node',
+        name='safety_stop',
+        parameters=[{
+            'front_stop_distance': 0.25,
+            'back_stop_distance':  0.18,
+            'hysteresis':          0.05,
+            'sensor_timeout':      0.5,
+        }],
+        output='screen'
+    )
+
+    pc_to_scan_node = Node(
+        package='pointcloud_to_laserscan',
+        executable='pointcloud_to_laserscan_node',
+        name='depth_to_scan',
+        remappings=[
+            ('cloud_in', '/camera/camera/depth/color/points'),
+            ('scan', '/scan_depth'),
+        ],
+        parameters=[{
+            'target_frame': 'base_link',
+            'transform_tolerance': 0.1,
+            'min_height': 0.10,
+            'max_height': 0.39,
+            'angle_min':  -0.80,
+            'angle_max':   0.80,
+            'angle_increment': 0.008,
+            'scan_time': 0.066,
+            'range_min': 0.25,
+            'range_max': 3.00,
+            'use_inf': True,
+            'inf_epsilon': 1.0,
+        }]
+    )
+
+    slam_node = TimerAction(period=5.0, actions=[
+        Node(
+            package='slam_toolbox',
+            executable='async_slam_toolbox_node',
+            name='slam_toolbox',
+            parameters=[
+                os.path.join(bringup, 'config', 'slam_toolbox_params.yaml'),
+                {'use_sim_time': False}
+            ],
+            output='screen',
+        )
+    ])
+
     camera_tf = Node(
         package='tf2_ros',
         executable='static_transform_publisher',
@@ -102,67 +165,6 @@ def generate_launch_description():
                    '--roll', '0', '--pitch', '0', '--yaw', '0',
                    '--frame-id', 'camera_link',
                    '--child-frame-id', 'camera_camera_link'],
-        output='screen'
-    )
-
-    amcl_node = TimerAction(period=5.0, actions=[
-        Node(
-            package='nav2_amcl',
-            executable='amcl',
-            name='amcl',
-            parameters=[{
-                'use_sim_time': False,
-                'base_frame_id': 'base_link',
-                'global_frame_id': 'map',
-                'odom_frame_id': 'odom',
-                'scan_topic': '/scan',
-                'min_particles': 2000,
-                'max_particles': 8000,
-                'update_min_d': 0.1,
-                'update_min_a': 0.1,
-                'resample_interval': 1,
-                'transform_tolerance': 1.0,
-                'recovery_alpha_slow': 0.0,
-                'recovery_alpha_fast': 0.0,
-                'laser_model_type': 'likelihood_field',
-                'laser_max_range': 12.0,
-                'laser_min_range': 0.15,
-                'laser_max_beams': 60,
-                'sigma_hit': 0.2,
-                'z_hit': 0.5,
-                'z_rand': 0.5,
-                'alpha1': 0.1,
-                'alpha2': 0.1,
-                'alpha3': 0.05,
-                'alpha4': 0.05,
-                'alpha5': 0.1,
-                'set_initial_pose': False,
-                'always_reset_initial_pose': False,
-            }],
-            output='screen'
-        )
-    ])
-
-    map_server_node = Node(
-        package='nav2_map_server',
-        executable='map_server',
-        name='map_server',
-        parameters=[{
-            'use_sim_time': False,
-            'yaml_filename': '/home/s23/ros2_ws/maps/new_room_map2.yaml',
-        }],
-        output='screen'
-    )
-
-    lifecycle_manager = Node(
-        package='nav2_lifecycle_manager',
-        executable='lifecycle_manager',
-        name='lifecycle_manager_localization',
-        parameters=[{
-            'use_sim_time': False,
-            'autostart': True,
-            'node_names': ['map_server', 'amcl'],
-        }],
         output='screen'
     )
 
@@ -175,7 +177,8 @@ def generate_launch_description():
         imu_filter,
         ekf_node,
         camera_tf,
-        map_server_node,
-        amcl_node,
-        lifecycle_manager,
+        ultrasonic_node,
+        safety_stop_node,
+        pc_to_scan_node,
+        slam_node,
     ])

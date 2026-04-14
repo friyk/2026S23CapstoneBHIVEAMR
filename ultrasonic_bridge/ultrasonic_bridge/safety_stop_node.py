@@ -1,0 +1,131 @@
+#!/usr/bin/env python3
+"""Reactive collision prevention.
+
+Subscribes to 4 ultrasonic Range topics and to /cmd_vel_nav (Nav2 output).
+Publishes /cmd_vel (motor driver input). Zeros linear.x when an obstacle is
+inside the stop threshold in the direction of commanded motion. Angular
+velocity always passes through so the robot can still rotate out of trouble.
+"""
+
+import math
+import rclpy
+from rclpy.node import Node
+from rclpy.qos import QoSProfile, ReliabilityPolicy, HistoryPolicy
+from sensor_msgs.msg import Range
+from geometry_msgs.msg import Twist
+
+
+class SafetyStop(Node):
+    def __init__(self):
+        super().__init__('safety_stop')
+
+        self.declare_parameter('front_stop_distance', 0.25)
+        self.declare_parameter('back_stop_distance',  0.18)
+        self.declare_parameter('hysteresis',          0.05)
+        self.declare_parameter('sensor_timeout',      0.5)
+
+        self.front_stop = self.get_parameter('front_stop_distance').value
+        self.back_stop  = self.get_parameter('back_stop_distance').value
+        self.hyst       = self.get_parameter('hysteresis').value
+        self.timeout    = self.get_parameter('sensor_timeout').value
+
+        self.ranges = {'fl': math.inf, 'fr': math.inf,
+                       'br': math.inf, 'bl': math.inf}
+        self.last_update = {k: self.get_clock().now() for k in self.ranges}
+
+        self.front_blocked = False
+        self.back_blocked  = False
+
+        qos = QoSProfile(
+            reliability=ReliabilityPolicy.RELIABLE,
+            history=HistoryPolicy.KEEP_LAST,
+            depth=5,
+        )
+
+        for key in self.ranges:
+            self.create_subscription(
+                Range, f'/ultrasonic/{key}',
+                lambda msg, k=key: self.range_cb(msg, k), qos)
+
+        self.create_subscription(Twist, '/cmd_vel', self.cmd_cb, 10)
+        self.pub = self.create_publisher(Twist, '/cmd_vel_safe', 10)
+
+        self.get_logger().info(
+            f'safety_stop ready: front={self.front_stop}m, '
+            f'back={self.back_stop}m, hysteresis={self.hyst}m')
+
+    def range_cb(self, msg: Range, key: str):
+        if msg.range >= msg.max_range - 1e-3:
+            self.ranges[key] = math.inf
+        else:
+            self.ranges[key] = msg.range
+        self.last_update[key] = self.get_clock().now()
+
+    def sensors_stale(self) -> bool:
+        now = self.get_clock().now()
+        for t in self.last_update.values():
+            if (now - t).nanoseconds * 1e-9 > self.timeout:
+                return True
+        return False
+
+    def update_blocked_state(self):
+        front_min = min(self.ranges['fl'], self.ranges['fr'])
+        back_min  = min(self.ranges['bl'], self.ranges['br'])
+
+        if self.front_blocked:
+            if front_min > self.front_stop + self.hyst:
+                self.front_blocked = False
+        else:
+            if front_min < self.front_stop:
+                self.front_blocked = True
+                self.get_logger().warn(
+                    f'FRONT blocked: {front_min:.2f} m')
+
+        if self.back_blocked:
+            if back_min > self.back_stop + self.hyst:
+                self.back_blocked = False
+        else:
+            if back_min < self.back_stop:
+                self.back_blocked = True
+                self.get_logger().warn(
+                    f'BACK blocked: {back_min:.2f} m')
+
+    def cmd_cb(self, msg: Twist):
+        self.update_blocked_state()
+
+        out = Twist()
+        out.angular = msg.angular  # rotation always allowed
+
+        if self.sensors_stale():
+            self.get_logger().warn('ultrasonic data stale, blocking linear')
+            out.linear.x = 0.0
+        elif msg.linear.x > 0.0 and self.front_blocked:
+            out.linear.x = 0.0
+        elif msg.linear.x < 0.0 and self.back_blocked:
+            out.linear.x = 0.0
+        else:
+            out.linear.x = msg.linear.x
+
+        out.linear.y = msg.linear.y
+        out.linear.z = msg.linear.z
+        self.pub.publish(out)
+
+
+def main():
+    rclpy.init()
+    node = SafetyStop()
+    try:
+        rclpy.spin(node)
+    except KeyboardInterrupt:
+        pass
+    finally:
+        try:
+            node.pub.publish(Twist())
+        except Exception:
+            pass
+        node.destroy_node()
+        rclpy.shutdown()
+
+
+if __name__ == '__main__':
+    main()

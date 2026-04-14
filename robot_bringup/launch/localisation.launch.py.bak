@@ -116,8 +116,8 @@ def generate_launch_description():
                 'global_frame_id': 'map',
                 'odom_frame_id': 'odom',
                 'scan_topic': '/scan',
-                'min_particles': 2000,
-                'max_particles': 8000,
+                'min_particles': 500,
+                'max_particles': 2000,
                 'update_min_d': 0.1,
                 'update_min_a': 0.1,
                 'resample_interval': 1,
@@ -149,7 +149,7 @@ def generate_launch_description():
         name='map_server',
         parameters=[{
             'use_sim_time': False,
-            'yaml_filename': '/home/s23/ros2_ws/maps/new_room_map2.yaml',
+            'yaml_filename': '/home/s23/ros2_ws/maps/new_room_map.yaml',
         }],
         output='screen'
     )
@@ -169,7 +169,7 @@ def generate_launch_description():
     return LaunchDescription([
         description_launch,
         rplidar_node,
-        realsense_node,
+        # realsense_node,
         zlac_node,
         imu_node,
         imu_filter,

@@ -75,38 +75,36 @@
     <origin xyz="0.1325 0.0 0.2775" rpy="0 0 0"/>
   </joint>
 
-  <!-- ── ULTRASONIC FRONT (D26) ── -->
-  <!-- at front of robot = 41.5cm forward of axle -->
-  <link name="ultrasonic_front_link"/>
-  <joint name="ultrasonic_front_joint" type="fixed">
+  <!-- ===== Ultrasonic sensor frames ===== -->
+  <!-- FL: 40cm forward, 19cm left, facing NW (+45°) -->
+  <link name="us_fl_link"/>
+  <joint name="us_fl_joint" type="fixed">
     <parent link="base_link"/>
-    <child  link="ultrasonic_front_link"/>
-    <origin xyz="0.415 0.0 0.10" rpy="0 0 0"/>
+    <child  link="us_fl_link"/>
+    <origin xyz="0.40  0.19  -0.0041" rpy="0 0 0.7854"/>
   </joint>
 
-  <!-- ── ULTRASONIC BACK (D18) ── -->
-  <!-- at back of robot = 56.5 - 41.5 = 15cm behind axle -->
-  <link name="ultrasonic_back_link"/>
-  <joint name="ultrasonic_back_joint" type="fixed">
+  <!-- FR: 40cm forward, 19cm right, facing NE (-45°) -->
+  <link name="us_fr_link"/>
+  <joint name="us_fr_joint" type="fixed">
     <parent link="base_link"/>
-    <child  link="ultrasonic_back_link"/>
-    <origin xyz="-0.150 0.0 0.10" rpy="0 0 3.14159"/>
+    <child  link="us_fr_link"/>
+    <origin xyz="0.40 -0.19  -0.0041" rpy="0 0 -0.7854"/>
   </joint>
 
-  <!-- ── ULTRASONIC LEFT (D24 - future) ── -->
-  <link name="ultrasonic_left_link"/>
-  <joint name="ultrasonic_left_joint" type="fixed">
+  <!-- BL: 14cm backward, 19cm left, facing SW (+135°) -->
+  <link name="us_bl_link"/>
+  <joint name="us_bl_joint" type="fixed">
     <parent link="base_link"/>
-    <child  link="ultrasonic_left_link"/>
-    <origin xyz="0.0 0.200 0.10" rpy="0 0 1.5708"/>
+    <child  link="us_bl_link"/>
+    <origin xyz="-0.14  0.19  -0.0041" rpy="0 0 2.3562"/>
   </joint>
 
-  <!-- ── ULTRASONIC RIGHT (D16 - future) ── -->
-  <link name="ultrasonic_right_link"/>
-  <joint name="ultrasonic_right_joint" type="fixed">
+  <!-- BR: 14cm backward, 19cm right, facing SE (-135°) -->
+  <link name="us_br_link"/>
+  <joint name="us_br_joint" type="fixed">
     <parent link="base_link"/>
-    <child  link="ultrasonic_right_link"/>
-    <origin xyz="0.0 -0.200 0.10" rpy="0 0 -1.5708"/>
+    <child  link="us_br_link"/>
+    <origin xyz="-0.14 -0.19  -0.0041" rpy="0 0 -2.3562"/>
   </joint>
-
 </robot>
