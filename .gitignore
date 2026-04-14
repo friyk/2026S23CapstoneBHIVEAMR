@@ -1,5 +1,43 @@
+# ── Colcon build artifacts ──
+build/
+install/
+log/
+
+# ── Python ──
 __pycache__/
 *.pyc
+*.pyo
+*.egg-info/
+dist/
+*.egg
+
+# ── IDE / editors ──
 .vscode/
+.idea/
+*.swp
+*.swo
+*~
 CMakeLists.txt.user
 
+# ── OS ──
+.DS_Store
+Thumbs.db
+
+# ── Maps (generated per-environment) ──
+maps/
+*.pgm
+
+# ── RTAB-Map databases ──
+*.db
+
+# ── Backup files ──
+*.bak
+*.bak[0-9]*
+
+# ── Logs and runtime ──
+*.log
+core
+
+# ── ROS bag files ──
+*.bag
+*.db3
