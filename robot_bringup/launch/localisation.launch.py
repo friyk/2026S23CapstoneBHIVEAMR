@@ -149,7 +149,7 @@ def generate_launch_description():
         name='map_server',
         parameters=[{
             'use_sim_time': False,
-            'yaml_filename': '/home/s23/ros2_ws/maps/new_room_map2.yaml',
+            'yaml_filename': '/home/s23/ros2_ws/maps/new_graninja_map.yaml',
         }],
         output='screen'
     )
